@@ -129,7 +129,7 @@
             border-radius: 8px;
             display: flex;
             flex-direction: column;
-            height: 550px; /* ALTURA AUMENTADA PARA VER MÁS DE 15 TIROS */
+            height: 550px;
             margin-bottom: 20px;
         }
 
@@ -166,10 +166,10 @@
         td:first-child, th:first-child { text-align: center; }
         
         .col-apuesta {
-            color: #facc15; /* Amarillo dorado brillante */
-            font-weight: 900; /* Extra negrita */
-            font-size: 1.05rem; /* Letra un poco más grande */
-            background-color: rgba(250, 204, 21, 0.12); /* Fondo sutil amarillo */
+            color: #facc15;
+            font-weight: 900;
+            font-size: 1.05rem;
+            background-color: rgba(250, 204, 21, 0.12);
             border-left: 2px solid rgba(250, 204, 21, 0.4);
             border-right: 2px solid rgba(250, 204, 21, 0.4);
         }
@@ -180,7 +180,7 @@
             border-left: 3px solid var(--accent-green);
         }
         tr.active-row .col-apuesta {
-            background-color: rgba(34, 197, 94, 0.3); /* Cambia a verde si es la fila activa */
+            background-color: rgba(34, 197, 94, 0.3);
             color: #fff;
         }
 
@@ -240,6 +240,7 @@
     </style>
 </head>
 <body>
+
 <div id="mainContainer">
     <h1>Calculadora Fibonacci - Docenas</h1>
     
@@ -254,7 +255,6 @@
         <div class="left-panel">
             <div class="input-group">
                 <label for="baseBetInput">🎯 Apuesta Base (S/.):</label>
-                <!-- oninput="cambiarApuestaBase()" es la clave para cálculo instantáneo -->
                 <input type="number" id="baseBetInput" value="2" min="0.1" step="0.5" oninput="cambiarApuestaBase()">
             </div>
 
@@ -327,10 +327,14 @@
     let currentIndex = 0;
     let historyData = [];
 
-    // Generar la secuencia matemática al iniciar y recalcular al instante
+    // IMPORTANTE: Buscamos el contenedor padre. Al usar la ventana flotante, 
+    // este contenedor se mueve íntegro, por lo que buscar dentro de él evita errores.
+    const app = document.getElementById('mainContainer');
+
+    // Generar la secuencia matemática
     function generarDatos() {
-        let inputVal = parseFloat(document.getElementById('baseBetInput').value);
-        let baseBet = isNaN(inputVal) || inputVal <= 0 ? 0 : inputVal; // Prevenir errores si borran el número
+        let inputVal = parseFloat(app.querySelector('#baseBetInput').value);
+        let baseBet = isNaN(inputVal) || inputVal <= 0 ? 0 : inputVal; 
         progressionData = []; 
         
         let a = 1, b = 1;
@@ -365,14 +369,13 @@
     function cambiarApuestaBase() {
         generarDatos();
         renderizarTabla();
-        // Se resetea el ciclo en silencio, sin alertas, de forma inmediata.
         currentIndex = 0;
         historyData = [];
         actualizarUI();
     }
 
     function renderizarTabla() {
-        const tbody = document.getElementById('progressionTableBody');
+        const tbody = app.querySelector('#progressionTableBody');
         tbody.innerHTML = '';
 
         progressionData.forEach((row, index) => {
@@ -393,22 +396,22 @@
 
         const currentData = progressionData[currentIndex];
 
-        // Textos del panel izquierdo
-        document.getElementById('stepDisplay').textContent = currentData.paso;
-        document.getElementById('betDisplay').textContent = currentData.apuesta + " S/.";
-        document.getElementById('totalRisky').textContent = currentData.acumulado + " S/.";
-        document.getElementById('profitDisplay').textContent = "+" + currentData.ganancia + " S/.";
+        // Usamos "app.querySelector" en lugar de "document.getElementById" para compatibilidad total con Flotante
+        app.querySelector('#stepDisplay').textContent = currentData.paso;
+        app.querySelector('#betDisplay').textContent = currentData.apuesta + " S/.";
+        app.querySelector('#totalRisky').textContent = currentData.acumulado + " S/.";
+        app.querySelector('#profitDisplay').textContent = "+" + currentData.ganancia + " S/.";
 
         // Resaltar fila en la tabla
-        document.querySelectorAll('tr').forEach(tr => tr.classList.remove('active-row'));
-        const activeRow = document.getElementById(`row-${currentIndex}`);
+        app.querySelectorAll('tr').forEach(tr => tr.classList.remove('active-row'));
+        const activeRow = app.querySelector(`#row-${currentIndex}`);
         if (activeRow) {
             activeRow.classList.add('active-row');
             activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         // Historial
-        const historyList = document.getElementById('historyList');
+        const historyList = app.querySelector('#historyList');
         if (historyData.length === 0) {
             historyList.innerHTML = '<li style="color: #64748b; list-style: none; padding-left: 0;">Iniciando ciclo...</li>';
         } else {
@@ -459,14 +462,14 @@
     }
 
     function mostrarAlerta(mensaje, tipo) {
-        const caja = document.getElementById('alertBox');
+        const caja = app.querySelector('#alertBox');
         caja.textContent = mensaje;
         caja.className = `alert-box alert-${tipo}`;
         caja.style.display = 'block';
     }
 
     function ocultarAlerta() {
-        document.getElementById('alertBox').style.display = 'none';
+        app.querySelector('#alertBox').style.display = 'none';
     }
 
     async function iniciarVentanaFlotante() {
@@ -493,15 +496,16 @@
                     }
                 });
 
-                const container = document.getElementById('mainContainer');
-                pipWindow.document.body.appendChild(container);
+                // Mover la app entera a la nueva ventana
+                pipWindow.document.body.appendChild(app);
                 
                 pipWindow.document.body.style.backgroundColor = '#0f172a';
                 pipWindow.document.body.style.display = 'flex';
                 pipWindow.document.body.style.justifyContent = 'center';
 
+                // Cuando se cierre, devolver la app a su lugar original
                 pipWindow.addEventListener("pagehide", (event) => {
-                    document.body.appendChild(container);
+                    document.body.appendChild(app);
                 });
 
             } catch (error) {
@@ -512,7 +516,7 @@
         }
     }
 
-    // Inicialización
+    // Inicialización final
     generarDatos();
     renderizarTabla();
     actualizarUI();

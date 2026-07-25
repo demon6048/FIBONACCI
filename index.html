@@ -102,17 +102,11 @@
         .current-bet h2 { margin: 0 0 8px 0; font-size: 0.95rem; color: #93c5fd; }
         .bet-amount { font-size: 2.5rem; font-weight: 800; color: #fff; line-height: 1; }
 
-        .actions {
+        .actions, .actions-row {
             display: grid;
-            grid-template-columns: 1fr;
             gap: 12px;
         }
-        
-        .actions-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
+        .actions-row { grid-template-columns: 1fr 1fr; }
 
         button {
             padding: 14px;
@@ -135,7 +129,7 @@
             border-radius: 8px;
             display: flex;
             flex-direction: column;
-            height: 550px;
+            height: 550px; /* ALTURA AUMENTADA PARA VER MÁS DE 15 TIROS */
             margin-bottom: 20px;
         }
 
@@ -172,21 +166,22 @@
         td:first-child, th:first-child { text-align: center; }
         
         .col-apuesta {
-            color: #facc15;
-            font-weight: 800;
-            font-size: 0.95rem;
-            background-color: rgba(250, 204, 21, 0.08);
-            border-left: 1px solid rgba(250, 204, 21, 0.2);
-            border-right: 1px solid rgba(250, 204, 21, 0.2);
+            color: #facc15; /* Amarillo dorado brillante */
+            font-weight: 900; /* Extra negrita */
+            font-size: 1.05rem; /* Letra un poco más grande */
+            background-color: rgba(250, 204, 21, 0.12); /* Fondo sutil amarillo */
+            border-left: 2px solid rgba(250, 204, 21, 0.4);
+            border-right: 2px solid rgba(250, 204, 21, 0.4);
         }
-        th.col-apuesta {
-            color: #fde047;
-        }
+        th.col-apuesta { color: #fde047; }
 
         tr.active-row {
             background-color: var(--highlight-bg);
             border-left: 3px solid var(--accent-green);
-            font-weight: bold;
+        }
+        tr.active-row .col-apuesta {
+            background-color: rgba(34, 197, 94, 0.3); /* Cambia a verde si es la fila activa */
+            color: #fff;
         }
 
         .history-box {
@@ -245,7 +240,6 @@
     </style>
 </head>
 <body>
-
 <div id="mainContainer">
     <h1>Calculadora Fibonacci - Docenas</h1>
     
@@ -260,7 +254,8 @@
         <div class="left-panel">
             <div class="input-group">
                 <label for="baseBetInput">🎯 Apuesta Base (S/.):</label>
-                <input type="number" id="baseBetInput" value="2" min="0.1" step="0.5" onchange="cambiarApuestaBase()">
+                <!-- oninput="cambiarApuestaBase()" es la clave para cálculo instantáneo -->
+                <input type="number" id="baseBetInput" value="2" min="0.1" step="0.5" oninput="cambiarApuestaBase()">
             </div>
 
             <div class="stats-grid">
@@ -325,25 +320,23 @@
 </div>
 
 <script>
-    // Configuración base
     const MAX_STEPS = 20;
     
-    // Variables de estado
     let fibSequence = [];
     let progressionData = [];
     let currentIndex = 0;
     let historyData = [];
 
-    // 1. Generar la secuencia matemática al iniciar
+    // Generar la secuencia matemática al iniciar y recalcular al instante
     function generarDatos() {
-        let baseBet = parseFloat(document.getElementById('baseBetInput').value) || 2;
-        progressionData = []; // Limpiar la tabla anterior
+        let inputVal = parseFloat(document.getElementById('baseBetInput').value);
+        let baseBet = isNaN(inputVal) || inputVal <= 0 ? 0 : inputVal; // Prevenir errores si borran el número
+        progressionData = []; 
         
         let a = 1, b = 1;
         let acumulado = 0;
 
         for (let i = 0; i < MAX_STEPS; i++) {
-            // Calcular Fibonacci
             let fibValue;
             if (i === 0) fibValue = 1;
             else if (i === 1) fibValue = 1;
@@ -353,11 +346,10 @@
                 b = fibValue;
             }
 
-            // Limitar decimales por si el usuario pone un monto como 1.5
             let apuesta = Number((fibValue * baseBet).toFixed(2));
             acumulado = Number((acumulado + apuesta).toFixed(2));
             
-            // Pago de docena es 3 a 1. (Recuperas 1 y ganas 2). Multiplicador total = x3.
+            // Pago de docena es 3 a 1.
             let pagoSiGana = Number((apuesta * 3).toFixed(2)); 
             let gananciaNeta = Number((pagoSiGana - acumulado).toFixed(2));
 
@@ -373,13 +365,12 @@
     function cambiarApuestaBase() {
         generarDatos();
         renderizarTabla();
-        reiniciarSistema();
-        let nuevaBase = document.getElementById('baseBetInput').value;
-        mostrarAlerta(`Apuesta base actualizada a ${nuevaBase} S/. Todo ha sido recalculado.`, 'success');
-        setTimeout(ocultarAlerta, 2500);
+        // Se resetea el ciclo en silencio, sin alertas, de forma inmediata.
+        currentIndex = 0;
+        historyData = [];
+        actualizarUI();
     }
 
-    // 2. Dibujar la tabla de 20 pasos
     function renderizarTabla() {
         const tbody = document.getElementById('progressionTableBody');
         tbody.innerHTML = '';
@@ -397,8 +388,9 @@
         });
     }
 
-    // 3. Actualizar toda la interfaz según el paso actual
     function actualizarUI() {
+        if(progressionData.length === 0) return;
+
         const currentData = progressionData[currentIndex];
 
         // Textos del panel izquierdo
@@ -412,7 +404,6 @@
         const activeRow = document.getElementById(`row-${currentIndex}`);
         if (activeRow) {
             activeRow.classList.add('active-row');
-            // Auto-scroll para que la fila resaltada siempre se vea
             activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
@@ -449,8 +440,8 @@
             mostrarAlerta(`¡ACERTASTE! Ganancia neta de +${currentData.ganancia} S/. Ciclo reiniciado.`, 'success');
             setTimeout(() => {
                 reiniciarSistema();
-            }, 1500); // Pequeña pausa para que vea que ganó
-            actualizarUI(); // Actualiza historial antes del reinicio visual
+            }, 1500); 
+            actualizarUI(); 
         } else {
             if (currentIndex < MAX_STEPS - 1) {
                 currentIndex++;
@@ -478,17 +469,14 @@
         document.getElementById('alertBox').style.display = 'none';
     }
 
-    // Funcionalidad avanzada: Ventana Flotante (Siempre al frente)
     async function iniciarVentanaFlotante() {
         if ('documentPictureInPicture' in window) {
             try {
-                // Abrir la ventana flotante
                 const pipWindow = await window.documentPictureInPicture.requestWindow({
                     width: 400,
-                    height: 650
+                    height: 700
                 });
 
-                // Copiar todos los estilos a la nueva ventana
                 [...document.styleSheets].forEach((styleSheet) => {
                     try {
                         const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
@@ -505,16 +493,13 @@
                     }
                 });
 
-                // Mover el contenedor principal a la ventana flotante
                 const container = document.getElementById('mainContainer');
                 pipWindow.document.body.appendChild(container);
                 
-                // Configurar fondo de la ventana nueva
                 pipWindow.document.body.style.backgroundColor = '#0f172a';
                 pipWindow.document.body.style.display = 'flex';
                 pipWindow.document.body.style.justifyContent = 'center';
 
-                // Cuando se cierre la ventana, regresar el contenido a la pestaña original
                 pipWindow.addEventListener("pagehide", (event) => {
                     document.body.appendChild(container);
                 });
@@ -527,11 +512,10 @@
         }
     }
 
-    // Inicializar aplicación
+    // Inicialización
     generarDatos();
     renderizarTabla();
     actualizarUI();
 </script>
-
 </body>
 </html>
